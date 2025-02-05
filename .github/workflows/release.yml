@@ -50,7 +50,7 @@ jobs:
         mv dist/* release/
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-${{ runner.os }}
         path: release/*
@@ -63,19 +63,19 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Download build artifacts from all platforms
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: build-windows
         path: ./release/windows
 
     - name: Download build artifacts from macOS
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: build-macos
         path: ./release/macos
 
     - name: Download build artifacts from Linux
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: build-linux
         path: ./release/linux
