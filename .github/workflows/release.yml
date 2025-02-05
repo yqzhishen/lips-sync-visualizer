@@ -62,19 +62,19 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: build-Windows
-        path: ./release/windows
+        path: ./release/Windows
 
     - name: Download build artifacts from macOS
       uses: actions/download-artifact@v4
       with:
-        name: build-macos
-        path: ./release/macos
+        name: build-macOS
+        path: ./release/macOS
 
     - name: Download build artifacts from Linux
       uses: actions/download-artifact@v4
       with:
-        name: build-linux
-        path: ./release/linux
+        name: build-Linux
+        path: ./release/Linux
 
     - name: Install GitHub CLI
       run: |
