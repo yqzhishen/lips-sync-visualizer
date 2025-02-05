@@ -61,8 +61,9 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         mkdir -p tmp/dmg
+        mkdir -p release
         cp -R dist/*.app tmp/dmg/
-        hdiutil create -volname "LipsSync-Visualizer-Windows-${{ github.run_number }}" -srcfolder tmp/dmg -ov -format UDZO release/LipsSync-Visualizer-Windows-${{ github.run_number }}.dmg
+        hdiutil create -volname "LipsSync-Visualizer-macOS-${{ github.run_number }}" -srcfolder tmp/dmg -ov -format UDZO release/LipsSync-Visualizer-macOS-${{ github.run_number }}.dmg
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
