@@ -60,9 +60,9 @@ jobs:
     - name: Package the DiskImage & Archive the build (macOS)
       if: runner.os == 'macOS'
       run: |
-        mkdir -p /tmp/dmg
-        cp -R dist/*.app /tmp/dmg/
-        hdiutil create -volname "LipsSync-Visualizer-Windows-${{ github.run_number }}" -srcfolder /tmp/dmg -ov -format UDZO release/LipsSync-Visualizer-Windows-${{ github.run_number }}.dmg
+        mkdir -p tmp/dmg
+        cp -R dist/*.app tmp/dmg/
+        hdiutil create -volname "LipsSync-Visualizer-Windows-${{ github.run_number }}" -srcfolder tmp/dmg -ov -format UDZO release/LipsSync-Visualizer-Windows-${{ github.run_number }}.dmg
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
