@@ -38,11 +38,7 @@ jobs:
 
     - name: Build the application with PyInstaller
       run: |
-        if [ $RUNNER_OS == 'Windows' ]; then
-          pyinstaller --onefile main.py
-        else
-          pyinstaller --onefile main.py
-        fi
+        pyinstaller --onefile main.py
 
     - name: Archive the build
       run: |
