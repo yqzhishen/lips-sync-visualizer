@@ -34,8 +34,7 @@ jobs:
     - name: Build the application with PyInstaller (Linux)
       if: runner.os == 'Linux'
       run: |
-        EXEC_NAME="LipsSync-Visualizer-Linux-${{ github.run_number }}"
-        pyinstaller --onefile --windowed --name $EXEC_NAME main.py
+        pyinstaller --onefile --windowed --name "LipsSync-Visualizer-Linux-${{ github.run_number }}" main.py
 
     - name: Install platform-specific dependencies (macOS)
       if: runner.os == 'macOS'
@@ -45,14 +44,12 @@ jobs:
     - name: Build the application with PyInstaller (macOS)
       if: runner.os == 'macOS'
       run: |
-        EXEC_NAME="LipsSync-Visualizer-macOS-${{ github.run_number }}"
-        pyinstaller --onefile --windowed --name $EXEC_NAME main.py
+        pyinstaller --onefile --windowed --name "LipsSync-Visualizer-macOS-${{ github.run_number }}" main.py
         
     - name: Build the application with PyInstaller (Windows)
       if: runner.os == 'Windows'
       run: |
-        EXEC_NAME="LipsSync-Visualizer-Windows-${{ github.run_number }}"
-        pyinstaller --onefile --windowed --name $EXEC_NAME main.py
+        pyinstaller --onefile --windowed --name "LipsSync-Visualizer-Windows-${{ github.run_number }}" main.py
 
     - name: Archive the build
       run: |
