@@ -51,10 +51,18 @@ jobs:
       run: |
         pyinstaller --onefile --windowed --name "LipsSync-Visualizer-Windows-${{ github.run_number }}" main.py
 
-    - name: Archive the build
+    - name: Archive the build (Linux and Windows)
+      if: runner.os == 'Linux' || runner.os == 'Windows'
       run: |
         mkdir release
         mv dist/* release/
+    
+    - name: Package the DiskImage & Archive the build (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        mkdir -p /tmp/dmg
+        cp -R dist/*.app /tmp/dmg/
+        hdiutil create -volname "LipsSync-Visualizer-Windows-${{ github.run_number }}" -srcfolder /tmp/dmg -ov -format UDZO release/LipsSync-Visualizer-Windows-${{ github.run_number }}.dmg
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
