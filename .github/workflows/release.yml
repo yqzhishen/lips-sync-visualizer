@@ -61,7 +61,7 @@ jobs:
     - name: Download build artifacts from all platforms
       uses: actions/download-artifact@v4
       with:
-        name: build-windows
+        name: build-Windows
         path: ./release/windows
 
     - name: Download build artifacts from macOS
