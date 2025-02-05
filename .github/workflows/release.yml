@@ -47,9 +47,6 @@ jobs:
           EXEC_NAME="LipsSync Visualizer-Windows-${{ github.run_number }}.exe"
         fi
 
-        # Create the output directory
-        mkdir -p $OUTPUT_DIR
-
         pyinstaller --onefile --windowed --name $EXEC_NAME main.py
 
     - name: Archive the build
