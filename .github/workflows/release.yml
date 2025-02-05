@@ -40,11 +40,11 @@ jobs:
       run: |
         # Define the output directory and executable name based on the OS
         if [ "${{ runner.os }}" == "Linux" ]; then
-          EXEC_NAME="LipsSync Visualizer-Linux-${{ github.run_number }}"
+          EXEC_NAME="LipsSync-Visualizer-Linux-${{ github.run_number }}"
         elif [ "${{ runner.os }}" == "macOS" ]; then
-          EXEC_NAME="LipsSync Visualizer-macOS-${{ github.run_number }}"
+          EXEC_NAME="LipsSync-Visualizer-macOS-${{ github.run_number }}"
         else
-          EXEC_NAME="LipsSync Visualizer-Windows-${{ github.run_number }}.exe"
+          EXEC_NAME="LipsSync-Visualizer-Windows-${{ github.run_number }}.exe"
         fi
 
         pyinstaller --onefile --windowed --name $EXEC_NAME main.py
