@@ -6,7 +6,10 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFileDialog, QPushButton
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QWidget,
+    QFileDialog, QPushButton, QLineEdit, QCheckBox
+)
 from scipy.io import wavfile
 from scipy.signal import spectrogram
 import csv
@@ -25,10 +28,33 @@ class VisualizationApp(QMainWindow):
         # Create a layout
         layout = QVBoxLayout(self.main_widget)
 
+        # Add a line edit to display the selected folder path
+        self.folder_path_edit = QLineEdit(self)
+        self.folder_path_edit.setReadOnly(True)
+        layout.addWidget(self.folder_path_edit)
+
         # Add a button to select folder
         self.select_folder_button = QPushButton("Select Folder", self)
         self.select_folder_button.clicked.connect(self.select_folder)
         layout.addWidget(self.select_folder_button)
+
+        # Add checkboxes to select attributes to visualize
+        self.jaw_open_checkbox = QCheckBox("jawOpen", self)
+        self.mouth_close_checkbox = QCheckBox("mouthClose", self)
+        self.lips_distance_checkbox = QCheckBox("LipsDistance", self)
+        self.jaw_open_diff_checkbox = QCheckBox("jawOpen - mouthClose", self)
+        self.jaw_open_corr_checkbox = QCheckBox("jawOpen * (1 - mouthClose)", self)
+        layout.addWidget(self.jaw_open_checkbox)
+        layout.addWidget(self.mouth_close_checkbox)
+        layout.addWidget(self.lips_distance_checkbox)
+        layout.addWidget(self.jaw_open_diff_checkbox)
+        layout.addWidget(self.jaw_open_corr_checkbox)
+
+        # Add a button to visualize the selected attributes
+        self.visualize_button = QPushButton("Visualize", self)
+        self.visualize_button.setEnabled(False)  # Initially disable the visualize button
+        self.visualize_button.clicked.connect(self.visualize)
+        layout.addWidget(self.visualize_button)
 
         # Add a button to export the figure
         self.export_button = QPushButton("Export Figure", self)
@@ -43,68 +69,87 @@ class VisualizationApp(QMainWindow):
     def select_folder(self):
         folder_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
+            self.folder_path_edit.setText(folder_path)
             csv_file = os.path.join(folder_path, "mouth_data.csv")
             audio_file = os.path.join(folder_path, "audio.wav")
-            self.load_and_plot_data(csv_file, audio_file)
+            self.load_data(csv_file, audio_file)
+            self.visualize_button.setEnabled(True)  # Enable the visualize button
 
-    def load_and_plot_data(self, csv_file, audio_file):
+    def load_data(self, csv_file, audio_file):
         # Read the CSV file
-        self.time, self.jaw_open, self.mouth_close = self.read_csv_file(csv_file)
+        self.time, self.jaw_open, self.mouth_close, self.lips_distance = self.read_csv_file(csv_file)
 
         # Read the audio file
         self.sampling_rate, self.audio_data = wavfile.read(audio_file)
 
-        # Create and add the plots
+    def visualize(self):
         self.create_plots()
-
-        # Enable the export button after the figure is created
-        self.export_button.setEnabled(True)
+        self.export_button.setEnabled(True)  # Enable the export button after the figure is created
 
     def read_csv_file(self, csv_file):
         time = []
         jaw_open = []
         mouth_close = []
+        lips_distance = []
         with open(csv_file, 'r') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 time.append(float(row['TimeStamp']))
                 jaw_open.append(float(row['jawOpen']))
                 mouth_close.append(float(row['mouthClose']))
-        return np.array(time), np.array(jaw_open), np.array(mouth_close)
+                lips_distance.append(float(row['LipsDistance']))
+        return np.array(time), np.array(jaw_open), np.array(mouth_close), np.array(lips_distance)
 
     def create_plots(self):
         # Create a figure
         self.fig, ax = plt.subplots(figsize=(12, 8))  # Increase the figure size
-        self.fig.tight_layout(pad=4.0)  # Add padding
+        # self.fig.tight_layout(pad=4.0, rect=[0, 0, 2, 2])  # Add padding
 
         # Plot the spectrogram
         f, t, Sxx = spectrogram(self.audio_data, self.sampling_rate)
         ax.pcolormesh(t, f, 10 * np.log10(Sxx), shading='gouraud')
-        ax.set_title("Spectrogram with jawOpen and mouthClose")
+        ax.set_title("Spectrogram with selected attributes")
         ax.set_xlabel("Time [s]")
         ax.set_ylabel("Frequency [Hz]")
         ax.set_xlim([0, t[-1]])  # Align x-axis with other plots
 
-        # Plot the jawOpen attribute on the secondary y-axis
-        ax2 = ax.twinx()
-        ax2.plot(self.time, self.jaw_open, 'r-', label='jawOpen')
-        ax2.set_ylabel("jawOpen Value", color='r')
-        ax2.tick_params(axis='y', labelcolor='r')
+        # Initialize ax2 to None
+        ax2 = None
 
-        # Plot the mouthClose attribute on the same secondary y-axis
-        ax2.plot(self.time, self.mouth_close, 'b-', label='mouthClose')
-        ax2.set_ylabel("Attribute Value", color='b')
-        ax2.tick_params(axis='y', labelcolor='b')
+        # Plot the selected attributes on the secondary y-axis if any are checked
+        if self.jaw_open_checkbox.isChecked():
+            if ax2 is None:
+                ax2 = ax.twinx()
+            ax2.plot(self.time, self.jaw_open, 'r-', label='jawOpen')
+        if self.mouth_close_checkbox.isChecked():
+            if ax2 is None:
+                ax2 = ax.twinx()
+            ax2.plot(self.time, self.mouth_close, 'b-', label='mouthClose')
+        if self.jaw_open_diff_checkbox.isChecked():
+            jaw_open_diff = self.jaw_open - self.mouth_close
+            if ax2 is None:
+                ax2 = ax.twinx()
+            ax2.plot(self.time, jaw_open_diff, 'g-', label='jawOpen - mouthClose')
+        if self.jaw_open_corr_checkbox.isChecked():
+            jaw_open_corr = self.jaw_open * (1 - self.mouth_close)
+            if ax2 is None:
+                ax2 = ax.twinx()
+            ax2.plot(self.time, jaw_open_corr, 'm-', label='jawOpen * (1 - mouthClose)')
 
-        # Calculate and plot the new attributes
-        jaw_open_minus_mouth_close = self.jaw_open - self.mouth_close
-        jaw_open_times_one_minus_mouth_close = self.jaw_open * (1 - self.mouth_close)
+        if ax2 is not None:
+            ax2.set_ylabel("Attribute Value", color='k')
+            ax2.tick_params(axis='y', labelcolor='k')
+            ax2.legend(loc='upper right')
 
-        ax2.plot(self.time, jaw_open_minus_mouth_close, 'g-', label='jawOpen - mouthClose')
-        ax2.plot(self.time, jaw_open_times_one_minus_mouth_close, 'm-', label='jawOpen * (1 - mouthClose)')
-
-        # Add legends
-        ax2.legend(loc='upper right')
+        # Plot the LipsDistance attribute on a third y-axis if checked
+        if self.lips_distance_checkbox.isChecked():
+            ax3 = ax.twinx()
+            if ax2 is not None:
+                ax3.spines['right'].set_position(('outward', 40))  # Offset the third y-axis if ax2 is rendered
+            ax3.plot(self.time, self.lips_distance, 'c-', label='LipsDistance [cm]')
+            ax3.set_ylabel("LipsDistance [cm]", color='c')
+            ax3.tick_params(axis='y', labelcolor='c')
+            ax3.legend(loc='upper left')
 
         # Add the figure to the layout
         canvas = FigureCanvas(self.fig)
