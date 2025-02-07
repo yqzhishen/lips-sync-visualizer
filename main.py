@@ -103,10 +103,12 @@ class VisualizationApp(QMainWindow):
     def create_plots(self):
         # Create a figure
         self.fig, ax = plt.subplots(figsize=(12, 8))  # Increase the figure size
-        # self.fig.tight_layout(pad=4.0, rect=[0, 0, 2, 2])  # Add padding
 
         # Plot the spectrogram
-        f, t, Sxx = spectrogram(self.audio_data, self.sampling_rate)
+        f, t, Sxx = spectrogram(
+            self.audio_data, self.sampling_rate,
+            window='hann', nperseg=2048, noverlap=1536, nfft=2048
+        )
         ax.pcolormesh(t, f, 10 * np.log10(Sxx), shading='gouraud')
         ax.set_title("Spectrogram with selected attributes")
         ax.set_xlabel("Time [s]")
