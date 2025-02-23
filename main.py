@@ -2,9 +2,12 @@ import os
 
 os.environ['QT_API'] = 'pyside6'
 
+import csv
 import sys
+
 import numpy as np
 import matplotlib.pyplot as plt
+import resampy
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget,
@@ -13,7 +16,8 @@ from PySide6.QtWidgets import (
 )
 from scipy.io import wavfile
 from scipy.signal import spectrogram
-import csv
+
+SAMPLE_RATE = 16000
 
 
 class VisualizationApp(QMainWindow):
@@ -95,7 +99,10 @@ class VisualizationApp(QMainWindow):
         self.time, self.jaw_open, self.mouth_close, self.lips_distance = self.read_csv_file(csv_file)
 
         # Read the audio file
-        self.sampling_rate, self.audio_data = wavfile.read(audio_file)
+        sr, audio_data = wavfile.read(audio_file)
+        if sr != SAMPLE_RATE:
+            audio_data = resampy.resample(audio_data, sr, SAMPLE_RATE)
+            self.audio_data = audio_data
 
     def visualize(self):
         self.create_plots()
@@ -128,8 +135,8 @@ class VisualizationApp(QMainWindow):
         end_idx = np.searchsorted(self.time, end_time)
 
         # Slice the audio data based on the selected start and end times
-        start_sample = int(start_time * self.sampling_rate)
-        end_sample = int(end_time * self.sampling_rate)
+        start_sample = int(start_time * SAMPLE_RATE)
+        end_sample = int(end_time * SAMPLE_RATE)
         sliced_audio_data = self.audio_data[start_sample:end_sample]
 
         # Create a figure
@@ -137,10 +144,10 @@ class VisualizationApp(QMainWindow):
 
         # Plot the spectrogram
         f, t, Sxx = spectrogram(
-            sliced_audio_data, self.sampling_rate,
-            window='hann', nperseg=2048, noverlap=1536, nfft=2048
+            sliced_audio_data, SAMPLE_RATE,
+            window='hann', nperseg=1024, noverlap=704, nfft=1024
         )
-        ax.pcolormesh(t + start_time, f, 10 * np.log10(Sxx), shading='gouraud')
+        ax.pcolormesh(t + start_time, f, 10 * np.log10(Sxx.clip(min=1e-5)), shading='gouraud')
         ax.set_title("Spectrogram with selected attributes")
         ax.set_xlabel("Time [s]")
         ax.set_ylabel("Frequency [Hz]")
