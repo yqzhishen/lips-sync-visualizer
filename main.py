@@ -162,7 +162,7 @@ class VisualizationApp(QMainWindow):
             jaw_open_diff = self.jaw_open - self.mouth_close
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time[start_idx:end_idx], jaw_open_diff[start_idx:end_idx], 'g-', label='jawOpen - mouthClose')
+            ax2.plot(self.time[start_idx:end_idx], jaw_open_diff[start_idx:end_idx], '-', color='orange', label='jawOpen - mouthClose')
         if self.jaw_open_corr_checkbox.isChecked():
             jaw_open_corr = self.jaw_open * (1 - self.mouth_close)
             if ax2 is None:
