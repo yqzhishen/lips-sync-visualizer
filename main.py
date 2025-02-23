@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QWidget,
-    QFileDialog, QPushButton, QLineEdit, QCheckBox
+    QFileDialog, QPushButton, QLineEdit, QCheckBox,
+    QLabel, QHBoxLayout
 )
 from scipy.io import wavfile
 from scipy.signal import spectrogram
@@ -41,7 +42,7 @@ class VisualizationApp(QMainWindow):
         # Add checkboxes to select attributes to visualize
         self.jaw_open_checkbox = QCheckBox("jawOpen", self)
         self.mouth_close_checkbox = QCheckBox("mouthClose", self)
-        self.lips_distance_checkbox = QCheckBox("LipsDistance", self)
+        self.lips_distance_checkbox = QCheckBox("lipsDistance", self)
         self.jaw_open_diff_checkbox = QCheckBox("jawOpen - mouthClose", self)
         self.jaw_open_corr_checkbox = QCheckBox("jawOpen * (1 - mouthClose)", self)
         layout.addWidget(self.jaw_open_checkbox)
@@ -50,7 +51,21 @@ class VisualizationApp(QMainWindow):
         layout.addWidget(self.jaw_open_diff_checkbox)
         layout.addWidget(self.jaw_open_corr_checkbox)
 
-        # Add a button to visualize the selected attributes
+        # Add input fields for start and end times in a horizontal layout
+        time_layout = QHBoxLayout()
+        self.start_time_label = QLabel("Start Time (s):", self)
+        self.start_time_edit = QLineEdit(self)
+        self.start_time_edit.setPlaceholderText("0.0")
+        time_layout.addWidget(self.start_time_label)
+        time_layout.addWidget(self.start_time_edit)
+
+        self.end_time_label = QLabel("End Time (s):", self)
+        self.end_time_edit = QLineEdit(self)
+        self.end_time_edit.setPlaceholderText("End of recording")
+        time_layout.addWidget(self.end_time_label)
+        time_layout.addWidget(self.end_time_edit)
+
+        layout.addLayout(time_layout)  # Add a button to visualize the selected attributes
         self.visualize_button = QPushButton("Visualize", self)
         self.visualize_button.setEnabled(False)  # Initially disable the visualize button
         self.visualize_button.clicked.connect(self.visualize)
@@ -97,23 +112,39 @@ class VisualizationApp(QMainWindow):
                 time.append(float(row['TimeStamp']))
                 jaw_open.append(float(row['jawOpen']))
                 mouth_close.append(float(row['mouthClose']))
-                lips_distance.append(float(row['LipsDistance']))
+                if 'LipsDistance' in row:
+                    lips_distance.append(float(row['LipsDistance']))
+                else:
+                    lips_distance.append(float(row['lipsDistance']))
         return np.array(time), np.array(jaw_open), np.array(mouth_close), np.array(lips_distance)
 
     def create_plots(self):
+        # Get the start and end times from the input fields
+        start_time = float(self.start_time_edit.text()) if self.start_time_edit.text() else 0.0
+        end_time = float(self.end_time_edit.text()) if self.end_time_edit.text() else self.time[-1]
+
+        # Find the indices corresponding to the start and end times
+        start_idx = np.searchsorted(self.time, start_time)
+        end_idx = np.searchsorted(self.time, end_time)
+
+        # Slice the audio data based on the selected start and end times
+        start_sample = int(start_time * self.sampling_rate)
+        end_sample = int(end_time * self.sampling_rate)
+        sliced_audio_data = self.audio_data[start_sample:end_sample]
+
         # Create a figure
         self.fig, ax = plt.subplots(figsize=(12, 8))  # Increase the figure size
 
         # Plot the spectrogram
         f, t, Sxx = spectrogram(
-            self.audio_data, self.sampling_rate,
+            sliced_audio_data, self.sampling_rate,
             window='hann', nperseg=2048, noverlap=1536, nfft=2048
         )
-        ax.pcolormesh(t, f, 10 * np.log10(Sxx), shading='gouraud')
+        ax.pcolormesh(t + start_time, f, 10 * np.log10(Sxx), shading='gouraud')
         ax.set_title("Spectrogram with selected attributes")
         ax.set_xlabel("Time [s]")
         ax.set_ylabel("Frequency [Hz]")
-        ax.set_xlim([0, t[-1]])  # Align x-axis with other plots
+        ax.set_xlim([start_time, end_time])  # Align x-axis with the selected sub-region
 
         # Initialize ax2 to None
         ax2 = None
@@ -122,34 +153,36 @@ class VisualizationApp(QMainWindow):
         if self.jaw_open_checkbox.isChecked():
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time, self.jaw_open, 'r-', label='jawOpen')
+            ax2.plot(self.time[start_idx:end_idx], self.jaw_open[start_idx:end_idx], 'r-', label='jawOpen')
         if self.mouth_close_checkbox.isChecked():
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time, self.mouth_close, 'b-', label='mouthClose')
+            ax2.plot(self.time[start_idx:end_idx], self.mouth_close[start_idx:end_idx], 'b-', label='mouthClose')
         if self.jaw_open_diff_checkbox.isChecked():
             jaw_open_diff = self.jaw_open - self.mouth_close
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time, jaw_open_diff, 'g-', label='jawOpen - mouthClose')
+            ax2.plot(self.time[start_idx:end_idx], jaw_open_diff[start_idx:end_idx], 'g-', label='jawOpen - mouthClose')
         if self.jaw_open_corr_checkbox.isChecked():
             jaw_open_corr = self.jaw_open * (1 - self.mouth_close)
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time, jaw_open_corr, 'm-', label='jawOpen * (1 - mouthClose)')
+            ax2.plot(self.time[start_idx:end_idx], jaw_open_corr[start_idx:end_idx], 'm-',
+                     label='jawOpen * (1 - mouthClose)')
 
         if ax2 is not None:
             ax2.set_ylabel("Attribute Value", color='k')
             ax2.tick_params(axis='y', labelcolor='k')
             ax2.legend(loc='upper right')
 
-        # Plot the LipsDistance attribute on a third y-axis if checked
+        # Plot the lipsDistance attribute on a third y-axis if checked
         if self.lips_distance_checkbox.isChecked():
             ax3 = ax.twinx()
             if ax2 is not None:
                 ax3.spines['right'].set_position(('outward', 40))  # Offset the third y-axis if ax2 is rendered
-            ax3.plot(self.time, self.lips_distance, 'c-', label='LipsDistance [cm]')
-            ax3.set_ylabel("LipsDistance [cm]", color='c')
+            ax3.plot(self.time[start_idx:end_idx], self.lips_distance[start_idx:end_idx], 'c-',
+                     label='lipsDistance [cm]')
+            ax3.set_ylabel("lipsDistance [cm]", color='c')
             ax3.tick_params(axis='y', labelcolor='c')
             ax3.legend(loc='upper left')
 
