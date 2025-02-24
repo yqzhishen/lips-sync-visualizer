@@ -1,6 +1,6 @@
 # LipsSync Visualizer
 
 ```bash
-pip install pyside6 matplotlib "numpy<2.0.0" scipy  # install
+pip install -r requirements.txt  # install
 python main.py  # run
 ```

@@ -1,0 +1,5 @@
+matplotlib
+numpy<2.0.0
+pyside6
+resampy
+scipy
