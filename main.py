@@ -68,8 +68,17 @@ class VisualizationApp(QMainWindow):
         self.end_time_edit.setPlaceholderText("End of recording")
         time_layout.addWidget(self.end_time_label)
         time_layout.addWidget(self.end_time_edit)
-
         layout.addLayout(time_layout)  # Add a button to visualize the selected attributes
+
+        # Add input field for offset in a horizontal layout
+        offset_layout = QHBoxLayout()
+        self.offset_label = QLabel("Curve Offset (ms):", self)
+        self.offset_edit = QLineEdit(self)
+        self.offset_edit.setPlaceholderText("0")
+        offset_layout.addWidget(self.offset_label)
+        offset_layout.addWidget(self.offset_edit)
+        layout.addLayout(offset_layout)
+
         self.visualize_button = QPushButton("Visualize", self)
         self.visualize_button.setEnabled(False)  # Initially disable the visualize button
         self.visualize_button.clicked.connect(self.visualize)
@@ -126,9 +135,10 @@ class VisualizationApp(QMainWindow):
         return np.array(time), np.array(jaw_open), np.array(mouth_close), np.array(lips_distance)
 
     def create_plots(self):
-        # Get the start and end times from the input fields
+        # Get the start, end times, and offset from the input fields
         start_time = float(self.start_time_edit.text()) if self.start_time_edit.text() else 0.0
         end_time = float(self.end_time_edit.text()) if self.end_time_edit.text() else self.time[-1]
+        offset = float(self.offset_edit.text()) / 1000 if self.offset_edit.text() else 0.0
 
         # Find the indices corresponding to the start and end times
         start_idx = np.searchsorted(self.time, start_time)
@@ -160,21 +170,23 @@ class VisualizationApp(QMainWindow):
         if self.jaw_open_checkbox.isChecked():
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time[start_idx:end_idx], self.jaw_open[start_idx:end_idx], 'r-', label='jawOpen')
+            ax2.plot(self.time[start_idx:end_idx] + offset, self.jaw_open[start_idx:end_idx], 'r-', label='jawOpen')
         if self.mouth_close_checkbox.isChecked():
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time[start_idx:end_idx], self.mouth_close[start_idx:end_idx], 'b-', label='mouthClose')
+            ax2.plot(self.time[start_idx:end_idx] + offset, self.mouth_close[start_idx:end_idx], 'b-',
+                     label='mouthClose')
         if self.jaw_open_diff_checkbox.isChecked():
             jaw_open_diff = self.jaw_open - self.mouth_close
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time[start_idx:end_idx], jaw_open_diff[start_idx:end_idx], '-', color='orange', label='jawOpen - mouthClose')
+            ax2.plot(self.time[start_idx:end_idx] + offset, jaw_open_diff[start_idx:end_idx], '-', color='orange',
+                     label='jawOpen - mouthClose')
         if self.jaw_open_corr_checkbox.isChecked():
             jaw_open_corr = self.jaw_open * (1 - self.mouth_close)
             if ax2 is None:
                 ax2 = ax.twinx()
-            ax2.plot(self.time[start_idx:end_idx], jaw_open_corr[start_idx:end_idx], 'm-',
+            ax2.plot(self.time[start_idx:end_idx] + offset, jaw_open_corr[start_idx:end_idx], 'm-',
                      label='jawOpen * (1 - mouthClose)')
 
         if ax2 is not None:
@@ -187,7 +199,7 @@ class VisualizationApp(QMainWindow):
             ax3 = ax.twinx()
             if ax2 is not None:
                 ax3.spines['right'].set_position(('outward', 40))  # Offset the third y-axis if ax2 is rendered
-            ax3.plot(self.time[start_idx:end_idx], self.lips_distance[start_idx:end_idx], 'c-',
+            ax3.plot(self.time[start_idx:end_idx] + offset, self.lips_distance[start_idx:end_idx], 'c-',
                      label='lipsDistance [cm]')
             ax3.set_ylabel("lipsDistance [cm]", color='c')
             ax3.tick_params(axis='y', labelcolor='c')
