@@ -109,6 +109,7 @@ class VisualizationApp(QMainWindow):
 
         # Read the audio file
         sr, audio_data = wavfile.read(audio_file)
+        self.audio_data = audio_data
         if sr != SAMPLE_RATE:
             audio_data = resampy.resample(audio_data, sr, SAMPLE_RATE)
             self.audio_data = audio_data
